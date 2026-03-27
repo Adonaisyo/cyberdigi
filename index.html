@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>CyberDigi V14</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #050505; --g: #00ff88; --c: #00e5ff; --r: #ff2244; --txt: #b8ffd0; }
+        body { background: var(--bg); color: var(--txt); font-family: 'Share Tech Mono', monospace; margin: 0; display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+        .hdr { padding: 12px; border-bottom: 1px solid #1a1a1a; display: flex; justify-content: space-between; align-items: center; background: #0a0a0a; flex-shrink: 0; }
+        .btn-reset { background: var(--r); color: #fff; border: none; padding: 5px 10px; font-family: 'Press Start 2P'; font-size: 7px; border-radius: 4px; }
+        .screen { flex: 0 0 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle, #0a1a10 0%, #050505 100%); position: relative; }
+        #canvas-emoji { font-size: 70px; animation: float 2s infinite ease-in-out; filter: drop-shadow(0 0 15px var(--g)); }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+        .stats { display: flex; background: #0a0a0a; border-y: 1px solid #1a1a1a; flex-shrink: 0; }
+        .stat { flex: 1; padding: 10px; text-align: center; font-size: 9px; border-right: 1px solid #1a1a1a; }
+        .stat span { display: block; color: var(--c); font-family: 'Press Start 2P'; font-size: 7px; margin-top: 4px; }
+        #chat { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: #000; }
+        .m { padding: 12px; border-radius: 4px; max-width: 85%; font-size: 15px; border: 1px solid rgba(255,255,255,0.05); }
+        .m.ai { background: #0a1510; border-left: 2px solid var(--g); align-self: flex-start; }
+        .m.u { background: #0a0a15; border-right: 2px solid var(--c); align-self: flex-end; color: var(--c); }
+        .m.sys { background: rgba(255, 34, 68, 0.1); color: var(--r); border: 1px solid var(--r); font-size: 11px; text-align: center; align-self: center; }
+        .controls { padding: 15px; background: #0a0a0a; display: flex; gap: 10px; border-top: 2px solid var(--g); flex-shrink: 0; padding-bottom: calc(15px + env(safe-area-inset-bottom)); }
+        input { flex: 1; background: #111; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 6px; font-size: 16px; outline: none; font-family: inherit; }
+        .btn-mic { width: 50px; height: 50px; border-radius: 12px; border: 1px solid var(--g); background: #000; color: var(--g); font-size: 24px; }
+    </style>
+</head>
+<body>
+<div class="hdr">
+    <button class="btn-reset" onclick="fullReset()">BORRAR TODO</button>
+    <span style="font-size:9px; color:var(--g)">SYSTEM: V14</span>
+    <span id="clock" style="font-size:10px">00:00:00</span>
+</div>
+<div class="screen">
+    <div style="position:absolute; top:8px; font-family:'Press Start 2P'; font-size:7px; color:var(--g)">NÚCLEO_GÉNESIS</div>
+    <div id="canvas-emoji">🥚</div>
+</div>
+<div class="stats"><div class="stat">ENERGÍA <span>100%</span></div><div class="stat">HIDRATACIÓN <span>100%</span></div><div class="stat">PASOS <span>0</span></div></div>
+<div id="chat"></div>
+<div class="controls">
+    <button class="btn-mic" onclick="startVoice()">🎤</button>
+    <input type="text" id="user-in" placeholder="Comando..." onkeydown="if(event.key=='Enter')handleAction()">
+    <button onclick="handleAction()" style="background:none; border:none; color:var(--g); font-family:'Press Start 2P'; font-size:8px;">OK</button>
+</div>
+<script>
+    let state = { key: localStorage.getItem('CYBER_KEY_V14') || "" };
+    window.onload = () => {
+        if (!state.key) { addMsg("SISTEMA: Enlace no detectado. Pega tu API Key abajo.", "sys"); }
+        else { addMsg("¡Hola Raúl! Sistema V14 Online. ¿Qué ordenas?", "ai"); }
+    };
+    function handleAction() {
+        const input = document.getElementById('user-in');
+        const val = input.value.trim();
+        if (!val) return;
+        if (!state.key) {
+            if (val.startsWith("sk-or-v1-")) {
+                localStorage.setItem('CYBER_KEY_V14', val);
+                location.reload();
+            } else { addMsg("ERROR: Formato de Key inválido.", "sys"); }
+        } else { sendToAI(val); }
+        input.value = "";
+    }
+    function fullReset() { localStorage.clear(); location.reload(); }
+    async function sendToAI(text) {
+        addMsg(text, 'u');
+        try {
+            const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                method: "POST",
+                headers: { "Authorization": "Bearer " + state.key, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    model: "google/gemini-2.0-flash-lite-preview-02-05:free",
+                    messages: [{role: "system", content: "Eres el Digimon de Raúl. Responde corto."}, {role: "user", content: text}]
+                })
+            });
+            const data = await res.json();
+            if (data.error) { addMsg("ERROR: " + data.error.message, "sys"); }
+            else {
+                const reply = data.choices[0].message.content;
+                addMsg(reply, "ai");
+                const utter = new SpeechSynthesisUtterance(reply); utter.lang = 'es-MX'; window.speechSynthesis.speak(utter);
+            }
+        } catch(e) { addMsg("ERROR DE RED", "sys"); }
+    }
+    function addMsg(t, cl) {
+        const d = document.createElement('div'); d.className = `m ${cl}`; d.innerText = t;
+        const b = document.getElementById('chat'); b.appendChild(d); b.scrollTop = b.scrollHeight;
+    }
+    setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString(); }, 1000);
+</script>
+</body>
+</html>
