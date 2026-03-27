@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>CyberDigi V15</title>
+    <title>CyberDigi V16</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
         :root { --bg: #050505; --g: #00ff88; --c: #00e5ff; --r: #ff2244; --txt: #b8ffd0; }
@@ -29,34 +29,29 @@
 <body>
 <div class="hdr">
     <button class="btn-reset" onclick="fullReset()">BORRAR TODO</button>
-    <span style="font-size:9px; color:var(--g)">SYSTEM: V15</span>
+    <span style="font-size:9px; color:var(--g)">SYSTEM: V16</span>
     <span id="clock" style="font-size:10px">00:00:00</span>
 </div>
 <div class="screen">
     <div style="position:absolute; top:8px; font-family:'Press Start 2P'; font-size:7px; color:var(--g)">NÚCLEO_GÉNESIS</div>
     <div id="canvas-emoji">🥚</div>
 </div>
-<div class="stats">
-    <div class="stat">ENERGÍA <span>100%</span></div>
-    <div class="stat">HIDRATACIÓN <span>100%</span></div>
-    <div class="stat">PASOS <span>0</span></div>
-</div>
+<div class="stats"><div class="stat">ENERGÍA <span>100%</span></div><div class="stat">HIDRATACIÓN <span>100%</span></div><div class="stat">PASOS <span>0</span></div></div>
 <div id="chat"></div>
 <div class="controls">
-    <button class="btn-mic" id="mic-btn" onclick="startVoice()">🎤</button>
+    <button class="btn-mic" onclick="startVoice()">🎤</button>
     <input type="text" id="user-in" placeholder="Comando..." onkeydown="if(event.key=='Enter')handleAction()">
     <button onclick="handleAction()" style="background:none; border:none; color:var(--g); font-family:'Press Start 2P'; font-size:8px;">OK</button>
 </div>
 
 <script>
-    // Usamos una clave nueva para esta versión
     let state = { key: localStorage.getItem('CYBER_MASTER_V15') || "" };
 
     window.onload = () => {
         if (!state.key) {
-            addMsg("SISTEMA: Enlace neuronal no detectado. Pega tu API Key abajo para iniciar el despertar.", "sys");
+            addMsg("SISTEMA: Enlace no detectado. Pega tu API Key abajo.", "sys");
         } else {
-            addMsg("¡Hola Raúl! Sistema V15 Online. El huevo está estable. ¿Qué ordenas?", "ai");
+            addMsg("¡Hola Raúl! V16 Online. Modelo actualizado. ¿Deseas probar el enlace?", "ai");
         }
     };
 
@@ -64,26 +59,16 @@
         const input = document.getElementById('user-in');
         const val = input.value.trim();
         if (!val) return;
-
         if (!state.key) {
             if (val.startsWith("sk-or-v1-")) {
                 localStorage.setItem('CYBER_MASTER_V15', val);
                 location.reload();
-            } else {
-                addMsg("ERROR: La Key debe empezar con sk-or-v1-", "sys");
-            }
-        } else {
-            sendToAI(val);
-        }
+            } else { addMsg("ERROR: Formato de Key inválido.", "sys"); }
+        } else { sendToAI(val); }
         input.value = "";
     }
 
-    function fullReset() {
-        if(confirm("¿Resetear sistema y borrar llave?")) {
-            localStorage.clear();
-            location.reload();
-        }
-    }
+    function fullReset() { localStorage.clear(); location.reload(); }
 
     async function sendToAI(text) {
         addMsg(text, 'u');
@@ -92,58 +77,38 @@
                 method: "POST",
                 headers: { 
                     "Authorization": "Bearer " + state.key, 
-                    "Content-Type": "application/json",
-                    "HTTP-Referer": "https://github.com/Adonaisyo/cyberdigi"
+                    "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    // Usamos el modelo más estable disponible
-                    model: "google/gemini-2.0-flash-lite-preview-02-05:free",
+                    model: "meta-llama/llama-3.1-8b-instruct:free",
                     messages: [
-                        {role: "system", content: "Eres el Digimon de Raúl. Responde de forma ruda y muy breve (1 frase)."},
+                        {role: "system", content: "Eres el Digimon de Raúl. Responde de forma ruda y breve (1 frase)."},
                         {role: "user", content: text}
                     ]
                 })
             });
 
             const data = await res.json();
-            
             if (data.error) {
-                // Si OpenRouter dice "User not found", es que la llave está mal
-                addMsg("ERROR CRÍTICO: " + data.error.message, "sys");
-                if(data.error.message.includes("User not found")) {
-                    addMsg("DIAGNÓSTICO: Tu API Key no es válida. Toca BORRAR TODO y pon una llave nueva.", "sys");
-                }
+                addMsg("ERROR: " + data.error.message, "sys");
             } else {
                 const reply = data.choices[0].message.content;
                 addMsg(reply, "ai");
-                const utter = new SpeechSynthesisUtterance(reply);
-                utter.lang = 'es-MX';
-                window.speechSynthesis.speak(utter);
+                const utter = new SpeechSynthesisUtterance(reply); utter.lang = 'es-MX'; window.speechSynthesis.speak(utter);
             }
-        } catch(e) {
-            addMsg("ERROR DE RED: Revisa tu conexión de datos.", "sys");
-        }
+        } catch(e) { addMsg("ERROR DE RED", "sys"); }
     }
 
     function addMsg(t, cl) {
-        const d = document.createElement('div');
-        d.className = `m ${cl}`;
-        d.innerText = t;
-        const b = document.getElementById('chat');
-        b.appendChild(d);
-        b.scrollTop = b.scrollHeight;
+        const d = document.createElement('div'); d.className = `m ${cl}`; d.innerText = t;
+        const b = document.getElementById('chat'); b.appendChild(d); b.scrollTop = b.scrollHeight;
     }
 
     function startVoice() {
         const rec = new (window.webkitSpeechRecognition || window.SpeechRecognition)();
         rec.lang = 'es-MX';
-        document.getElementById('mic-btn').style.borderColor = '#ff2244';
         rec.start();
-        rec.onresult = (e) => {
-            document.getElementById('user-in').value = e.results[0][0].transcript;
-            handleAction();
-        };
-        rec.onend = () => { document.getElementById('mic-btn').style.borderColor = '#00ff88'; };
+        rec.onresult = (e) => { document.getElementById('user-in').value = e.results[0][0].transcript; handleAction(); };
     }
 
     setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString(); }, 1000);
